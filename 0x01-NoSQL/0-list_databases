@@ -1,0 +1,2 @@
+// List all database in a mongoD8 server.
+show dbs;
