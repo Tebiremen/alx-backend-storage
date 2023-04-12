@@ -7,20 +7,32 @@ from typing import union, callable, optional
 from functools import wraps
 
 
-UnionOfTypes = Union[str, bytes, int, float]
+def count_calls(method: Callable) -> Callable:
+    ''' Follow up numbers of calls in the cache class'''
+
+    @wraps(method)
+     def invoker(self, *args, **kwargs) -> union:
+         ''' Gather the givren metthod after incrementing'''
+
+         if isinstance(self._redis, redis.Redis):
+            self._redis.incr(method.__qualname__)
+        return method(self, *args, **kwargs)
+    return invoker
 
 
-class Cache:
-    ''' follow up the number of calls made to a method in a Cache class'''
+def call_history(method: Callable) -> Callable:
+    ''' Follow up the call details in the cache class'''
 
-     def __init__(self):
-         ''' Gather the given method after incrementing the call counter'''
-         self._redis = redis.Redis()
-         self._redis.flushdb()
+    @wraps(method)
+    def invoker(self, *args, **kwargs) -> union:
+        ''' After storing the inputs and output, return the method output'''
 
-         def store(self, data: UnionOfTypes) -> str:
-             '''After storing its inputs and output, return the method output.
-             '''
-             self._key = str(uuid4())
-             self._redis.set(key, data)
-             return self._key
+        in_key = '{}:inputs'.format(method.__qualname__)
+        out_key = '{}:outputs'.format(method.__qualname__)
+        if isinstance(self._redis, redis.Redis):
+            self._redis.rpush(in_key, str(args))
+        output = method(self, *args, **kwargs)
+        if isinstance(self._redis, redis.Redis):
+            self._redis.rpush(out_key, output)
+        return output
+    return invoker
