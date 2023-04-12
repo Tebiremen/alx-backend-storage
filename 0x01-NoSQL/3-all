@@ -1,0 +1,2 @@
+// In school collection, create all the documents.
+db.school.find().forEach(printjson);
